@@ -9,7 +9,7 @@ namespace FFMpegCore.Arguments
     {
         public readonly IPipeSink Reader;
 
-        public OutputPipeArgument(IPipeSink reader) : base(PipeDirection.In)
+        public OutputPipeArgument(IPipeSink reader) : base(true)
         {
             Reader = reader;
         }
@@ -18,10 +18,8 @@ namespace FFMpegCore.Arguments
 
         protected override async Task ProcessDataAsync(CancellationToken token)
         {
-            await Pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
-            if (!Pipe.IsConnected)
-                throw new TaskCanceledException();
-            await Reader.ReadAsync(Pipe, token).ConfigureAwait(false);
+            var stream = await GetStreamAsync();
+            await Reader.ReadAsync(stream, token).ConfigureAwait(false);
         }
     }
 }

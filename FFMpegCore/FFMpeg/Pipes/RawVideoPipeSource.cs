@@ -47,13 +47,13 @@ namespace FFMpegCore.Pipes
 
         public async Task WriteAsync(System.IO.Stream outputStream, CancellationToken cancellationToken)
         {
-            if (_framesEnumerator.Current != null)
+            if (!cancellationToken.IsCancellationRequested && _framesEnumerator.Current != null)
             {
                 CheckFrameAndThrow(_framesEnumerator.Current);
                 await _framesEnumerator.Current.SerializeAsync(outputStream, cancellationToken).ConfigureAwait(false);
             }
 
-            while (_framesEnumerator.MoveNext())
+            while (!cancellationToken.IsCancellationRequested && _framesEnumerator.MoveNext())
             {
                 CheckFrameAndThrow(_framesEnumerator.Current!);
                 await _framesEnumerator.Current!.SerializeAsync(outputStream, cancellationToken).ConfigureAwait(false);

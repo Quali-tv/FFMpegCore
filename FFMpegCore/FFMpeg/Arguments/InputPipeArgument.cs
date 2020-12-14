@@ -12,7 +12,7 @@ namespace FFMpegCore.Arguments
     {
         public readonly IPipeSource Writer;
 
-        public InputPipeArgument(IPipeSource writer) : base(PipeDirection.Out)
+        public InputPipeArgument(IPipeSource writer) : base(false)
         {
             Writer = writer;
         }
@@ -21,10 +21,8 @@ namespace FFMpegCore.Arguments
 
         protected override async Task ProcessDataAsync(CancellationToken token)
         {
-            await Pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
-            if (!Pipe.IsConnected)
-                throw new TaskCanceledException();
-            await Writer.WriteAsync(Pipe, token).ConfigureAwait(false);
+            var stream = await GetStreamAsync();
+            await Writer.WriteAsync(stream, token).ConfigureAwait(false);
         }
     }
 }

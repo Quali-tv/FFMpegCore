@@ -26,7 +26,7 @@ namespace FFMpegCore
 
         public string Arguments => _ffMpegArguments.Text;
 
-        private event EventHandler CancelEvent = null!; 
+        private event EventHandler CancelEvent = null!;
 
         public FFMpegArgumentProcessor NotifyOnProgress(Action<double> onPercentageProgress, TimeSpan totalTimeSpan)
         {
@@ -46,7 +46,11 @@ namespace FFMpegCore
         }
         public bool ProcessSynchronously(bool throwOnError = true)
         {
-            using var instance = PrepareInstance(out var cancellationTokenSource);
+            var cancellationTokenSource = new CancellationTokenSource();
+
+            _ffMpegArguments.Pre(cancellationTokenSource.Token);
+
+            using var instance = PrepareInstance(cancellationTokenSource);
             var errorCode = -1;
 
             void OnCancelEvent(object sender, EventArgs args)
@@ -56,11 +60,13 @@ namespace FFMpegCore
                 instance.Started = false;
             }
             CancelEvent += OnCancelEvent;
-            instance.Exited += delegate { cancellationTokenSource.Cancel(); };
-            
+            instance.Exited += delegate
+            {
+                cancellationTokenSource.Cancel();
+            };
+
             try
             {
-                _ffMpegArguments.Pre();
                 Task.WaitAll(instance.FinishedRunning().ContinueWith(t =>
                 {
                     errorCode = t.Result;
@@ -76,7 +82,7 @@ namespace FFMpegCore
             {
                 CancelEvent -= OnCancelEvent;
             }
-            
+
             return HandleCompletion(throwOnError, errorCode, instance.ErrorData, instance.OutputData);
         }
 
@@ -91,47 +97,16 @@ namespace FFMpegCore
             return errorCode == 0;
         }
 
-        public async Task<bool> ProcessAsynchronously(bool throwOnError = true)
+        public Task<bool> ProcessAsynchronously(bool throwOnError = true)
         {
-            using var instance = PrepareInstance(out var cancellationTokenSource);
-            var errorCode = -1;
-
-            void OnCancelEvent(object sender, EventArgs args)
-            {
-                instance.SendInput("q");
-                cancellationTokenSource.Cancel();
-                instance.Started = false;
-            }
-            CancelEvent += OnCancelEvent;
-            
-            try
-            {
-                _ffMpegArguments.Pre();
-                await Task.WhenAll(instance.FinishedRunning().ContinueWith(t =>
-                {
-                    errorCode = t.Result;
-                    cancellationTokenSource.Cancel();
-                    _ffMpegArguments.Post();
-                }), _ffMpegArguments.During(cancellationTokenSource.Token)).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (!HandleException(throwOnError, e, instance.ErrorData, instance.OutputData)) return false;
-            }
-            finally
-            {
-                CancelEvent -= OnCancelEvent;
-            }
-
-            return HandleCompletion(throwOnError, errorCode, instance.ErrorData, instance.OutputData);
+            return Task.Run(() => ProcessSynchronously(throwOnError));
         }
 
-        private Instance PrepareInstance(out CancellationTokenSource cancellationTokenSource)
+        private Instance PrepareInstance(CancellationTokenSource cancellationTokenSource)
         {
             FFMpegHelper.RootExceptionCheck();
             FFMpegHelper.VerifyFFMpegExists();
             var instance = new Instance(FFMpegOptions.Options.FFmpegBinary(), _ffMpegArguments.Text);
-            cancellationTokenSource = new CancellationTokenSource();
 
             if (_onTimeProgress != null || (_onPercentageProgress != null && _totalTimespan != null))
                 instance.DataReceived += OutputData;
@@ -139,7 +114,7 @@ namespace FFMpegCore
             return instance;
         }
 
-        
+
         private static bool HandleException(bool throwOnError, Exception e, IReadOnlyList<string> errorData, IReadOnlyList<string> outputData)
         {
             if (!throwOnError)

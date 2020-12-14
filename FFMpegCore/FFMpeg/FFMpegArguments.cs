@@ -62,7 +62,7 @@ namespace FFMpegCore
             return new FFMpegArgumentProcessor(this);
         }
 
-        internal void Pre()
+        internal void Pre(CancellationToken cancellationToken = default)
         {
             foreach (var argument in Arguments.OfType<IInputOutputArgument>())
                 argument.Pre();

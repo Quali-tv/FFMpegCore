@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,8 @@ namespace FFMpegCore.Extend
 
         public Bitmap Source { get; private set; }
 
+        private byte[] buffer = null!;
+
         public BitmapVideoFrameWrapper(Bitmap bitmap)
         {
             Source = bitmap ?? throw new ArgumentNullException(nameof(bitmap));
@@ -30,9 +33,17 @@ namespace FFMpegCore.Extend
 
             try
             {
-                var buffer = new byte[data.Stride * data.Height];
+                var bufferLen = data.Stride * data.Height;
+                if (buffer?.Length != bufferLen)
+                    buffer = new byte[bufferLen];
+
                 Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
                 stream.Write(buffer, 0, buffer.Length);
+            }
+            catch (ObjectDisposedException)
+            {
+                if (!(stream is NetworkStream))
+                    throw;
             }
             finally
             {
@@ -46,9 +57,20 @@ namespace FFMpegCore.Extend
 
             try
             {
-                var buffer = new byte[data.Stride * data.Height];
+                var bufferLen = data.Stride * data.Height;
+                if (buffer?.Length != bufferLen)
+                    buffer = new byte[bufferLen];
+
                 Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
-                await stream.WriteAsync(buffer, 0, buffer.Length, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await stream.WriteAsync(buffer, 0, buffer.Length, token);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                if (!(stream is NetworkStream))
+                    throw;
             }
             finally
             {
@@ -58,6 +80,7 @@ namespace FFMpegCore.Extend
 
         public void Dispose()
         {
+            buffer = null!;
             Source.Dispose();
         }
 

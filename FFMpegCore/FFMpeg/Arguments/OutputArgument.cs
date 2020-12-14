@@ -20,7 +20,7 @@ namespace FFMpegCore.Arguments
             Overwrite = overwrite;
         }
 
-        public void Pre()
+        public void Pre(CancellationToken cancellationToken = default)
         {
             if (!Overwrite && File.Exists(Path))
                 throw new FFMpegException(FFMpegExceptionType.File, "Output file already exists and overwrite is disabled");

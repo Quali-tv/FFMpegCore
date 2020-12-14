@@ -17,7 +17,7 @@ namespace FFMpegCore.Arguments
             Values = values;
         }
 
-        public void Pre() { }
+        public void Pre(CancellationToken cancellationToken = default) { }
         public Task During(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void Post() { }
         

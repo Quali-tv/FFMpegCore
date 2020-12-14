@@ -20,7 +20,7 @@ namespace FFMpegCore.Arguments
 
         public InputArgument(string path, bool verifyExists) : this(verifyExists, path) { }
 
-        public void Pre()
+        public void Pre(CancellationToken cancellationToken = default)
         {
             if (VerifyExists && !File.Exists(FilePath))
                 throw new FileNotFoundException("Input file not found", FilePath);
