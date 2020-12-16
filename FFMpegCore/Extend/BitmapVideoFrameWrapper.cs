@@ -40,7 +40,7 @@ namespace FFMpegCore.Extend
                 Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
                 stream.Write(buffer, 0, buffer.Length);
             }
-            catch (ObjectDisposedException)
+            catch (Exception)
             {
                 if (!(stream is NetworkStream))
                     throw;
@@ -67,7 +67,7 @@ namespace FFMpegCore.Extend
                     await stream.WriteAsync(buffer, 0, buffer.Length, token);
                 }
             }
-            catch (ObjectDisposedException)
+            catch (Exception)
             {
                 if (!(stream is NetworkStream))
                     throw;
