@@ -106,7 +106,16 @@ namespace FFMpegCore
         {
             FFMpegHelper.RootExceptionCheck();
             FFMpegHelper.VerifyFFMpegExists();
-            var instance = new Instance(FFMpegOptions.Options.FFmpegBinary(), _ffMpegArguments.Text);
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = FFMpegOptions.Options.FFmpegBinary(),
+                Arguments = _ffMpegArguments.Text,
+                StandardOutputEncoding = FFMpegOptions.Options.Encoding,
+                StandardErrorEncoding = FFMpegOptions.Options.Encoding,
+            };
+
+            var instance = new Instance(startInfo);
 
             if (_onTimeProgress != null || (_onPercentageProgress != null && _totalTimespan != null))
                 instance.DataReceived += OutputData;
